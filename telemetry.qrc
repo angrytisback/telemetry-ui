@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Dashboard.qml</file>
+        <file>VerticalBar.qml</file>
+        <file>telemetry.json</file>
+    </qresource>
+</RCC>

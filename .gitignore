@@ -1,0 +1,43 @@
+# C++ / CMake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Build Directories
+build/
+build-*/
+out/
+bin/
+lib/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Qt
+*.moc
+moc_*.cpp
+*.rcc
+qrc_*.cpp
+ui_*.h
+*.user
+*.user.*
+.qmake.stash
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
