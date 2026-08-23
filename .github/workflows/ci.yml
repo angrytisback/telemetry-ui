@@ -16,8 +16,13 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
       with:
-        version: '6.5.0'
-        modules: 'qtbase qtdeclarative'
+        version: '6.5.3'
+        host: 'linux'
+        target: 'desktop'
+        arch: 'gcc_64'
+        cache: 'true'
+        cache-key-prefix: 'qt-6.5.3-gcc_64'
+        modules: 'qt5compat qtdeclarative'
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
