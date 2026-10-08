@@ -1,0 +1,14 @@
+FROM fedora:40
+
+# Önceden derlenmiş resmi MinGW ve Qt6 paketlerini kur (sıfır derleyici derleme)
+RUN dnf install -y --setopt=install_weak_deps=False \
+    mingw64-gcc-c++ \
+    mingw64-cmake \
+    mingw64-qt6-qtbase \
+    mingw64-qt6-qtdeclarative \
+    mingw64-qt6-qtcharts \
+    mingw64-qt6-qtsvg \
+    ninja-build \
+    && dnf clean all
+
+WORKDIR /src

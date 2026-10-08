@@ -1,69 +1,90 @@
-# TelemetriUI
+# Alaz Takımı - Çelik Kubbe Hava Savunma & İKA Komuta Kontrol İstasyonu
 
-**TelemetriUI** is a modern, high-performance telemetry dashboard and bridge application built with Qt6/QML and C++17. Designed to interface seamlessly with embedded microcontrollers (MCUs) via UDP and support simulated static data parsing, it provides an industrial-grade, highly responsive user interface for monitoring metrics like CPU usage, RAM, Uptime, Temperature, Speed, RPM, and Battery Voltage.
+**Alaz SCADA Telemetri Sistemi**, Qt6 / QML ve C++17 mimarisi üzerine inşa edilmiş; insansız kara araçları (İKA) ve Çelik Kubbe hava savunma entegrasyonu için geliştirilmiş profesyonel bir komuta kontrol ve yer istasyonu arayüzüdür.
 
-## Features
+Sistem, harici donanım veya Python simülatörü üzerinden UDP protokolü (port 4444) ile gelen taktik telemetri verilerini gerçek zamanlı (10 Hz+) olarak işler, görselleştirir ve analiz eder.
 
-- **Real-Time MCU Monitoring**: Connects to microcontrollers via UDP (default port 4444) with zero-cost data mapping from packed C-structs.
-- **Dual Telemetry Domains**: 
-  - `mcuTelemetry`: Dedicated for hardware metrics (CPU, RAM, Uptime).
-  - `carTelemetry`: Dedicated for vehicle data (Speed, RPM, Voltage), mockable via JSON.
-- **Hardware-Accelerated UI**: Qt Quick (QML) based UI offering 60+ FPS fluid animations.
-- **Memory Safe & Idiomatic C++**: Enforces C++17 standards, RAII, smart pointers (`std::unique_ptr`), and `nodiscard` properties.
-- **Comprehensive Test Suite**: QtTest framework integration covering data serialization, edge cases, and QSignal verifications.
+---
 
-## Architecture
+## 🚀 Ekran Düzeni ve Taktik Telemetri Alanları
 
-The architecture enforces a strict separation of concerns between UI (QML) and Business Logic (C++):
-- `TelemetryReceiver`: A robust UDP networking layer ensuring network packet alignment and memory-safe processing via `QNetworkDatagram`.
-- `TelemetryBridge`: Acts as a data proxy for QML contexts and supports mocking state via `QJsonDocument`.
-- `Dashboard.qml` & `Main.qml`: Declarative UI elements bound reactively to C++ signals ensuring minimal redraws.
+Arayüz, **Alaz Takımı** kurumsal kimliğine uygun derin uzay siyahı (`#09090b`), katı paneller (`#121217`, `#171720`) ve pastel tonlu mühendislik göstergeleri ile 3 ana kolonda tasarlanmıştır:
 
-## Prerequisites & Installation
+### 1. Üst Bar (Header Bar)
+- **Kurumsal Kimlik**: Alaz Takımı vektörel SVG logosu ve `ÇELİK KUBBE` rozeti.
+- **Taktik Durum**: `UDP: 127.0.0.1:4444`, `UPTIME` sayacı ve dijital sistem saati.
 
-### Requirements
-- **CMake** >= 3.16
-- **Qt 6.x** (Modules: Core, Gui, Qml, Quick, Network, Test)
-- **C++17 Compatible Compiler** (GCC 9+, Clang 10+, MSVC 19.20+)
+### 2. Sol Kolon: İKA & Güç Sistemi Telemetrisi
+- **Aviyonik / İşlemci Sıcaklığı (Avionics Temp)**: `QtQuick.Shapes` yarım daire (Arc) göstergesi (0 - 120 °C).
+- **Batarya Güç Barası Gerilimi (Bus Voltage)**: İKA ana batarya voltaj kadranı (0 - 60 V, 48V LiFePO4 sistemi).
+- **İKA İlerleme Hızı (Vehicle Speed)**: İKA arazi ilerleme hızı yatay bar göstergesi (0 - 50 km/s).
 
-### Build Instructions
+### 3. Orta Kolon: Çelik Kubbe Hava Savunma Radarı & Zaman Grafiği
+- **Çelik Kubbe Entegre Hava Savunma Radarı**:
+  - Katmanlı savunma menzilleri: İç Hat / Yakın Savunma (2 km), Kısa Menzil İKA (5 km), Orta Menzil (10 km), Erken İhbar (15 km).
+  - Taktik hedef telemetrisi: Otomatik hesaplanan Azimut açısı (`000° - 359°`), hedef menzili (`km`) ve hedef reticle'ı (`[İHA-T1]`).
+- **Gerçek Zamanlı Taktik Telemetri Grafiği (QtCharts LineSeries)**:
+  - Aviyonik Sıcaklığı (°C) ve Batarya Bara Voltajı (V) dinamik kayan çizgi grafiği.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/telemetriui.git
-   cd telemetriui
-   ```
+### 4. Sağ Kolon: Taktik Olay Günlüğü ve Hazırlık Seviyesi
+- **Çelik Kubbe & İKA Taktik Günlük (ListView)**:
+  - Seviyeler: `[CRIT]`, `[WARN]`, `[INFO]`.
+  - Tehdit tespitleri, IFF (Dost/Düşman) kontrolleri ve İKA devriye durumları.
+- **Hava Savunma Hazırlık Oranı (Defense Readiness Doughnut)**:
+  - %0 - %100 arası mühimmat ve sistem operasyonel teyakkuz halka göstergesi.
 
-2. **Configure with CMake:**
-   ```bash
-   cmake -B build -DCMAKE_BUILD_TYPE=Release
-   ```
+---
 
-3. **Compile:**
-   ```bash
-   cmake --build build -j$(nproc)
-   ```
+## 📡 UDP Telemetri Protokolü (22 Bayt Packed)
 
-4. **Run the Application:**
-   ```bash
-   ./build/telemetri_ui
-   ```
+Veriler dış dünyadan (İKA otopilotu veya Python simülatörü) Little-Endian formatında, 1 bayt hizalamalı (packed) olarak iletilir:
 
-## Testing
+| Alan Adı | Tip | Boyut | Açıklama |
+| :--- | :--- | :--- | :--- |
+| `avionics_temp` | `float32` | 4 Bayt | Aviyonik / Radar işlemci sıcaklığı (°C) |
+| `bus_voltage` | `float32` | 4 Bayt | İKA / Sistem batarya güç barası gerilimi (V) |
+| `vehicle_speed` | `float32` | 4 Bayt | İKA arazi ilerleme hızı (km/s) |
+| `defense_readiness` | `uint8_t` | 1 Bayt | Savunma ve mühimmat hazırlık seviyesi (% 0-100) |
+| `target_x` | `float32` | 4 Bayt | Radar hedef azimut X ekseni (-1.0 ile +1.0) |
+| `target_y` | `float32` | 4 Bayt | Radar hedef menzil Y ekseni (-1.0 ile +1.0) |
+| `tactical_event` | `uint8_t` | 1 Bayt | Taktik durum / olay kodu (0 - 5) |
 
-The repository ships with an exhaustive suite of unit and integration tests.
+**Toplam Boyut:** `22 Bayt` (`#pragma pack(push, 1)`)
 
-Run tests using CTest:
+---
+
+## 🛠️ Kurulum ve Çalıştırma
+
+### Derleme
 ```bash
-cd build
-ctest --output-on-failure
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
 ```
 
-Tests validate:
-- Cross-platform struct padding guarantees (`TelemetryPacket`).
-- Bound assertions on property setters using fuzzy comparison to prevent infinite loop QML re-evaluations.
-- Integration tests ensuring correct QSignal propagation under rapid UDP packet ingestion.
+### Testleri Çalıştırma
+```bash
+cd build
+ctest -V
+```
 
-## License
+### Simülatörü ve SCADA'yı Çalıştırma
 
-This project is open-source and available under the [MIT License](LICENSE).
+1. **Terminal 1 - Taktik Mock Veri Gönderici:**
+```bash
+python3 mock_sender.py
+```
+
+2. **Terminal 2 - SCADA Yer İstasyonu:**
+```bash
+./build/telemetri_ui
+```
+
+---
+
+## 🪟 Windows (Cross-Platform & Dağıtım)
+
+Proje hem Linux hem de Windows için tam uyumludur:
+- **Tek Tıkla Windows Derleme & Dağıtım:** `build_windows.bat` veya `build_windows.ps1`
+- **Linux (Arch/CachyOS) Üzerinden Cross-Compile:** `x86_64-w64-mingw32-cmake`
+- **Ayrıntılı Kılavuz:** [docs/WINDOWS_BUILD.md](docs/WINDOWS_BUILD.md) dosyasını inceleyin.

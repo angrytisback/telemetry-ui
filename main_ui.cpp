@@ -1,60 +1,68 @@
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QDebug>
+#include <QFont>
+#include <QFontInfo>
 #include "TelemetryReceiver.h"
 #include "common/TelemetryBridge.h"
 
 /**
- * @brief Main entry point for the TelemetriUI application.
+ * @brief Alaz Takımı SCADA / Komuta Kontrol Telemetri Arayüzü Ana Giriş Noktası.
  * 
- * Initializes the GUI application, QML engine, and sets up
- * the telemetry data connections before loading the UI.
- * 
- * @param argc Number of command-line arguments.
- * @param argv Array of command-line arguments.
- * @return Application exit code.
+ * QtCharts desteği için QApplication başlatır, QML motorunu ve UDP
+ * telemetri alıcısını yapılandırır.
  */
 int main(int argc, char *argv[]) {
-    // Set up modern Qt configurations if needed
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
+    // QtCharts QML modülünün hatasız çalışması için QApplication gereklidir
+    QApplication app(argc, argv);
+    app.setOrganizationName("AlazTeam");
+    app.setOrganizationDomain("alaztakimi.org");
+    app.setApplicationName("Alaz SCADA Telemetri Sistemi");
 
-    QGuiApplication app(argc, argv);
-    app.setOrganizationName("OpenSource");
-    app.setOrganizationDomain("opensource.org");
-    app.setApplicationName("TelemetriUI");
+    // Genel sistem yazı tipi: JetBrains Mono (Windows & Linux uyumlu geri çekilme ile)
+    QFont appFont("JetBrainsMono Nerd Font");
+    if (!QFontInfo(appFont).exactMatch()) {
+        appFont.setFamily("JetBrains Mono");
+        if (!QFontInfo(appFont).exactMatch()) {
+#if defined(Q_OS_WIN)
+            appFont.setFamily("Consolas");
+#else
+            appFont.setFamily("Monospace");
+#endif
+        }
+    }
+    appFont.setPointSize(10);
+    appFont.setStyleHint(QFont::Monospace);
+    app.setFont(appFont);
 
     QQmlApplicationEngine engine;
     
-    // Create and initialize the UDP Telemetry Receiver
+    // UDP Telemetri Alıcısını Başlat (Port: 4444)
     TelemetryReceiver mcuTelemetry;
     if (!mcuTelemetry.startListening(4444)) {
-        qWarning() << "Warning: Telemetry receiver could not bind to port 4444.";
+        qWarning() << "[HATA] Telemetri alıcısı 4444 portuna bağlanamadı!";
     }
     
-    // Create the vehicle Telemetry Bridge
+    // Araç Telemetri Köprüsü (Statik / Simülasyon)
     TelemetryBridge carTelemetry;
-    
-    // Try to load simulated data if available
     carTelemetry.loadFromJson(":/telemetry.json");
     
-    // We expose both backend systems to QML explicitly
+    // Backend nesnelerini QML context'ine aktar
     engine.rootContext()->setContextProperty("telemetry", &mcuTelemetry);
     engine.rootContext()->setContextProperty("carTelemetry", &carTelemetry);
     
-    // Fail-safe object creation validation
+    // Hata kontrolü
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url = QUrl(QStringLiteral("qrc:/Main.qml"))](QObject *obj, const QUrl &objUrl) {
         if (!obj && url == objUrl) {
-            qCritical() << "Fatal Error: Failed to load root QML file!";
+            qCritical() << "[KRITIK HATA] Root QML (qrc:/Main.qml) yüklenemedi!";
             QCoreApplication::exit(-1);
         }
     }, Qt::QueuedConnection);
     
-    // Load the main view
+    // QML arayüzünü yükle
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
 
-    return QGuiApplication::exec();
+    return QApplication::exec();
 }

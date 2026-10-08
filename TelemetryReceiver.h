@@ -4,60 +4,50 @@
 #include <QObject>
 #include <QUdpSocket>
 #include <QString>
-#include <memory>
+#include <QTimer>
 #include "common/TelemetryData.h"
 
 /**
- * @brief Class responsible for receiving telemetry UDP packets.
- * 
- * Listens on a specified port for TelemetryPacket data and emits
- * signals to notify the UI or other components of state changes.
+ * @brief TelemetryReceiver manages high-speed UDP reception of Air Defense (Çelik Kubbe)
+ *        and Unmanned Ground Vehicle (İKA) telemetry packets.
  */
 class TelemetryReceiver : public QObject
 {
     Q_OBJECT
-    
+
 public:
-    /**
-     * @brief Constructs a TelemetryReceiver object.
-     * @param parent The parent QObject (optional).
-     */
     explicit TelemetryReceiver(QObject *parent = nullptr);
-    
-    /**
-     * @brief Destroys the TelemetryReceiver, closing the socket.
-     */
     ~TelemetryReceiver() override;
 
-    /**
-     * @brief Starts listening for incoming UDP datagrams on the specified port.
-     * @param port The UDP port to bind to (default: 4444).
-     * @return true if successfully bound, false otherwise.
-     */
     Q_INVOKABLE bool startListening(quint16 port = 4444);
 
 signals:
-    /// @brief Emitted when CPU usage is updated.
-    void cpuUsageChanged(int percent);
-    
-    /// @brief Emitted when available heap memory is updated.
-    void heapChanged(unsigned int bytes);
-    
-    /// @brief Emitted when the uptime is updated.
-    void uptimeChanged(unsigned int seconds);
-    
-    /// @brief Emitted when MCU temperature is updated.
-    void tempChanged(int temperature);
-    
-    /// @brief Emitted when a new log message string is received.
-    void logMessageReceived(const QString &message);
+    // Çelik Kubbe & İKA Taktik Sinyalleri
+    void avionicsTempChanged(float temp);
+    void busVoltageChanged(float voltage);
+    void vehicleSpeedChanged(float speed);
+    void defenseReadinessChanged(int percent);
+    void tacticalTargetChanged(float x, float y);
+    void tacticalEventReceived(int eventCode, const QString &description, const QString &level);
+    void uptimeChanged(int uptimeSeconds);
+
+    // Geriye dönük uyumluluk sinyalleri
+    void coreTempChanged(float temp);
+    void pressureChanged(float pressure);
+    void flowRateChanged(float flowRate);
+    void efficiencyChanged(int efficiency);
+    void radarTargetChanged(float x, float y);
+    void eventReceived(int eventCode, const QString &description, const QString &level);
 
 private slots:
-    /// @brief Slot called when UDP datagrams are available to be read.
     void processPendingDatagrams();
+    void onUptimeTick();
 
 private:
-    std::unique_ptr<QUdpSocket> m_udpSocket;
+    QUdpSocket *m_udpSocket{nullptr};
+    QTimer *m_uptimeTimer{nullptr};
+    int m_uptimeSeconds{0};
+    uint8_t m_lastEventCode{255};
 };
 
 #endif // TELEMETRYRECEIVER_H

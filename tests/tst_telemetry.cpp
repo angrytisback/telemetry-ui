@@ -58,27 +58,43 @@ private slots:
         // Set up a sender socket
         QUdpSocket senderSocket;
         TelemetryPacket packet{};
-        packet.cpu_usage_percent = 45;
-        packet.free_heap_bytes = 10240;
-        packet.uptime_seconds = 120;
-        packet.mcu_temp_c = 42;
-        strncpy(packet.log_message, "Test Message", sizeof(packet.log_message) - 1);
+        packet.avionics_temp = 68.5f;
+        packet.bus_voltage = 48.2f;
+        packet.vehicle_speed = 30.5f;
+        packet.defense_readiness = 94;
+        packet.target_x = 0.45f;
+        packet.target_y = -0.32f;
+        packet.tactical_event = 1;
         
-        QSignalSpy cpuSpy(&receiver, &TelemetryReceiver::cpuUsageChanged);
-        QSignalSpy logSpy(&receiver, &TelemetryReceiver::logMessageReceived);
+        QSignalSpy tempSpy(&receiver, &TelemetryReceiver::avionicsTempChanged);
+        QSignalSpy voltSpy(&receiver, &TelemetryReceiver::busVoltageChanged);
+        QSignalSpy speedSpy(&receiver, &TelemetryReceiver::vehicleSpeedChanged);
+        QSignalSpy targetSpy(&receiver, &TelemetryReceiver::tacticalTargetChanged);
+        QSignalSpy eventSpy(&receiver, &TelemetryReceiver::tacticalEventReceived);
         
         QByteArray data(reinterpret_cast<const char*>(&packet), sizeof(packet));
         senderSocket.writeDatagram(data, QHostAddress::LocalHost, 5555);
         
         // Process events to allow UDP delivery
-        QVERIFY(cpuSpy.wait(1000));
-        QCOMPARE(cpuSpy.count(), 1);
+        QVERIFY(tempSpy.wait(1000));
+        QCOMPARE(tempSpy.count(), 1);
+        QCOMPARE(tempSpy.takeFirst().at(0).toFloat(), 68.5f);
         
-        QList<QVariant> arguments = cpuSpy.takeFirst();
-        QCOMPARE(arguments.at(0).toInt(), 45);
+        QCOMPARE(voltSpy.count(), 1);
+        QCOMPARE(voltSpy.takeFirst().at(0).toFloat(), 48.2f);
+
+        QCOMPARE(speedSpy.count(), 1);
+        QCOMPARE(speedSpy.takeFirst().at(0).toFloat(), 30.5f);
+
+        QCOMPARE(targetSpy.count(), 1);
+        QList<QVariant> targetArgs = targetSpy.takeFirst();
+        QCOMPARE(targetArgs.at(0).toFloat(), 0.45f);
+        QCOMPARE(targetArgs.at(1).toFloat(), -0.32f);
         
-        QCOMPARE(logSpy.count(), 1);
-        QCOMPARE(logSpy.first().at(0).toString(), QString("Test Message"));
+        QCOMPARE(eventSpy.count(), 1);
+        QList<QVariant> eventArgs = eventSpy.takeFirst();
+        QCOMPARE(eventArgs.at(0).toInt(), 1);
+        QCOMPARE(eventArgs.at(2).toString(), QString("INFO"));
     }
 };
 

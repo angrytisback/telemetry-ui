@@ -46,21 +46,21 @@ void TelemetryBridge::loadFromJson(const QString& path) {
 }
 
 void TelemetryBridge::setBatteryVoltage(float v) {
-    if (!qFuzzyCompare(m_batteryVoltage, v)) {
+    if (!qFuzzyCompare(1.0f + m_batteryVoltage, 1.0f + v)) {
         m_batteryVoltage = v;
         emit batteryVoltageChanged();
     }
 }
 
 void TelemetryBridge::setMotorTemperature(float t) {
-    if (!qFuzzyCompare(m_motorTemperature, t)) {
+    if (!qFuzzyCompare(1.0f + m_motorTemperature, 1.0f + t)) {
         m_motorTemperature = t;
         emit motorTemperatureChanged();
     }
 }
 
 void TelemetryBridge::setSpeed(float s) {
-    if (!qFuzzyCompare(m_speed, s)) {
+    if (!qFuzzyCompare(1.0f + m_speed, 1.0f + s)) {
         m_speed = s;
         emit speedChanged();
     }
@@ -74,7 +74,7 @@ void TelemetryBridge::setRpm(int r) {
 }
 
 void TelemetryBridge::setOilTemperature(float t) {
-    if (!qFuzzyCompare(m_oilTemperature, t)) {
+    if (!qFuzzyCompare(1.0f + m_oilTemperature, 1.0f + t)) {
         m_oilTemperature = t;
         emit oilTemperatureChanged();
     }

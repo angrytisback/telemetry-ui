@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>Main.qml</file>
+        <file>logo.png</file>
+        <file>alaz.svg</file>
     </qresource>
 </RCC>
