@@ -1,4 +1,4 @@
-name: C++ CI
+name: ALAZ SCADA CI & Windows Build
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [ "main", "develop" ]
 
 jobs:
-  build-and-test:
+  build-linux:
+    name: Linux Build & Test (Ubuntu)
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -20,16 +20,52 @@ jobs:
         host: 'linux'
         target: 'desktop'
         arch: 'gcc_64'
-        cache: 'true'
-        cache-key-prefix: 'qt-6.5.3-gcc_64'
-        modules: 'qt5compat qtdeclarative'
+        modules: 'qtcharts'
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config Release -j $(nproc)
+      run: cmake --build build --config Release -j $(nproc)
 
     - name: Test
-      working-directory: ${{github.workspace}}/build
+      working-directory: build
       run: ctest -C Release --output-on-failure
+
+  build-windows:
+    name: Windows Standalone Build & Package
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSVC Environment
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Install Qt (MSVC 64-bit)
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        modules: 'qtcharts'
+
+    - name: Configure CMake
+      run: cmake -B build_windows -S . -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Application
+      run: cmake --build build_windows --config Release --parallel
+
+    - name: Package with windeployqt
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path dist/windows -Force | Out-Null
+        Copy-Item -Path build_windows/Release/telemetri_ui.exe -Destination dist/windows/
+        Copy-Item -Path mock_sender.py -Destination dist/windows/
+        windeployqt --release --qmldir . --compiler-runtime --no-translations dist/windows/telemetri_ui.exe
+
+    - name: Upload Windows Standalone Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: telemetri_ui_windows_x64
+        path: dist/windows/
